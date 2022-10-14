@@ -6,6 +6,7 @@ build:
 
 release: build
 	poetry publish -u __token__ -p $$PYPI_PASSWORD
+	
 
 dist/%.whl:
 	${MAKE} build
@@ -18,3 +19,6 @@ install-dev:
 
 uninstall:
 	pip uninstall aioburst
+
+upload-%: dist/*.whl
+	gh release upload $* $<
