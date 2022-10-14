@@ -1,3 +1,5 @@
+'''Testing alimiter module'''
+
 import asyncio
 from asyncio import Semaphore
 from datetime import datetime, timezone
@@ -25,7 +27,7 @@ async def call_time(call_num: int, limiter) -> Dict[str, int | datetime]:
         a dictionary of the `time` and `call_num` (if provided)
     '''
     async with limiter:
-        resp: Dict[str, int | datetime] = {'time': datetime.now(timezone.utc)} 
+        resp: Dict[str, int | datetime] = {'time': datetime.now(timezone.utc)}
         if call_num is not None:
             resp['call_num'] = call_num
         return resp
