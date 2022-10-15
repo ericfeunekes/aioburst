@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aioburst"
-version = "0.1.1"
+version = "0.1.2"
 description = "A library to limit async calls using a waterwheel approach to ensure calls maximize the rate limit."
 authors = ["ericfeunekes <ericwill.f@gmail.com>"]
 readme = "README.md"
