@@ -3,6 +3,9 @@
 import asyncio
 from asyncio import Semaphore
 from datetime import datetime, timezone
+from hypothesis import given, settings
+from hypothesis.strategies import integers, floats
+import threading
 from typing import Dict, Union
 
 import numpy as np #type:ignore
@@ -58,20 +61,43 @@ async def test_limiter():
 @pytest.mark.asyncio
 async def test_wrong_semaphore_type():
     '''Ensure TypeError is returned if the wrong Semaphore is passed in'''
-    import threading
     with pytest.raises(TypeError):
         semaphore = threading.Semaphore(1)
         async with aioburst(semaphore, 2):
             pass
 
+# @pytest.mark.asyncio
+# async def test_wrong_semaphore_value():
+#     '''Ensure ValueError is returned if the period is less than 0'''
+#     with pytest.raises(ValueError):
+#         async with aioburst(asyncio.Semaphore(0), 1):
+#             pass
+
 @pytest.mark.asyncio
 async def test_wrong_period_type():
+    '''Ensure TypeError is returned if period is not a float or int'''
     with pytest.raises(TypeError):
         async with aioburst(asyncio.Semaphore(1), 'wrong'):
             pass
 
 @pytest.mark.asyncio
 async def test_wrong_period_value():
+    '''Ensure ValueError is returned if the period is less than 0'''
     with pytest.raises(ValueError):
         async with aioburst(asyncio.Semaphore(1), -1):
             pass
+
+#TODO: Use these after you've mocked asyncio sleep so that they don't take forever
+# @pytest.mark.asyncio
+# @given(s=integers(min_value=1), i=integers(min_value=0, max_value=5))
+# async def test_integer_hypothesis(s, i):
+#     '''Test aioburst with a range of integers'''
+#     async with aioburst(asyncio.Semaphore(s), i):
+#         assert True
+
+# @pytest.mark.asyncio
+# @given(i=floats(min_value=0, max_value=5))
+# async def test_float_hypothesis(i):
+#     '''Test aioburst with a range of floats'''
+#     async with aioburst(asyncio.Semaphore(), i):
+#         assert True
