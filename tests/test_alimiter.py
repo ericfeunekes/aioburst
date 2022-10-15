@@ -3,14 +3,14 @@
 import asyncio
 from asyncio import Semaphore
 from datetime import datetime, timezone
-from typing import Dict
+from typing import Dict, Union
 
-import numpy as np
-import pytest
+import numpy as np #type:ignore
+import pytest #type:ignore
 
 from aioburst import aioburst
 
-async def call_time(call_num: int, limiter) -> Dict[str, int | datetime]:
+async def call_time(call_num: int, limiter) -> Dict[str, Union[int, datetime]]:
     '''Sends back the time that the function was called.
 
     If `call_num` is included, it sends back `call_num` with `time`, otherwise
@@ -45,11 +45,33 @@ async def test_limiter():
         tasks.append(task)
 
     done = await asyncio.gather(*tasks)
+    times = [d['time'] for d in done]
     seconds = [d['time'].second for d in done]
 
     # First four values should burst in the same second
     np.testing.assert_array_equal(seconds[:4],[seconds[0]]*4)
     # Last four values should burst in the same second
     np.testing.assert_array_equal(seconds[4:],[seconds[-1]]*4)
-    # First value should be 2 seconds less than the last value
-    assert seconds[-1] - seconds[0] == period
+    # First value should be 2 times less than the last value
+    assert (times[-1] - times[0]).seconds == period
+
+@pytest.mark.asyncio
+async def test_wrong_semaphore_type():
+    '''Ensure TypeError is returned if the wrong Semaphore is passed in'''
+    import threading
+    with pytest.raises(TypeError):
+        semaphore = threading.Semaphore(1)
+        async with aioburst(semaphore, 2):
+            pass
+
+@pytest.mark.asyncio
+async def test_wrong_period_type():
+    with pytest.raises(TypeError):
+        async with aioburst(asyncio.Semaphore(1), 'wrong'):
+            pass
+
+@pytest.mark.asyncio
+async def test_wrong_period_value():
+    with pytest.raises(ValueError):
+        async with aioburst(asyncio.Semaphore(1), -1):
+            pass
