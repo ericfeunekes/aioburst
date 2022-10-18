@@ -29,7 +29,7 @@ class TestSleeper:
 
         assert ended - started >= pdl.duration(seconds=wait_time)
 
-async def call_time(call_num: int, limiter) -> Dict[str, Union[int, pdl.datetime]]:
+async def dummy_caller(call_num: int, limiter) -> Dict[str, Union[int, pdl.DateTime]]:
     '''Sends back the time that the function was called.
 
     If `call_num` is included, it sends back `call_num` with `time`, otherwise
@@ -42,14 +42,17 @@ async def call_time(call_num: int, limiter) -> Dict[str, Union[int, pdl.datetime
 
     Returns
     -------
-    Dict[str, int | datetime]
+    Dict[str, int | pdl.DateTime]
         a dictionary of the `time` and `call_num` (if provided)
     '''
     async with limiter:
-        resp: Dict[str, int | datetime] = {'time': datetime.now(timezone.utc)}
+        resp: Dict[str, int | pdl.DateTime] = {'time': pdl.now(tz='UTC')}
         if call_num is not None:
             resp['call_num'] = call_num
         return resp
+
+class TestAIOBurst:
+    
 
 @pytest.mark.asyncio
 async def test_limiter():
