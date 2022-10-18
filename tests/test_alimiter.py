@@ -2,18 +2,34 @@
 
 import asyncio
 from asyncio import Semaphore
-from datetime import datetime, timezone
-from hypothesis import given, settings
-from hypothesis.strategies import integers, floats
-import threading
 from typing import Dict, Union
+
+import pendulum as pdl
 
 import numpy as np #type:ignore
 import pytest #type:ignore
 
-from aioburst import aioburst
+from aioburst.alimiter import AIOBurst, Sleeper
 
-async def call_time(call_num: int, limiter) -> Dict[str, Union[int, datetime]]:
+class TestSleeper:
+    '''Tests the Sleeper class'''
+    def test_time_validator(self):
+        '''Tests the time validator'''
+        with pytest.raises(ValueError):
+            Sleeper(time=pdl.now(tz='US/Eastern'))
+
+    @pytest.mark.asyncio
+    async def test_wait(self):
+        '''Tests the wait method'''
+        wait_time = 0.5
+        sleeper = Sleeper(time=pdl.now(tz='UTC').add(seconds=wait_time))
+        started= pdl.now(tz='UTC')
+        await sleeper.wait()
+        ended = pdl.now(tz='UTC')
+
+        assert ended - started >= pdl.duration(seconds=wait_time)
+
+async def call_time(call_num: int, limiter) -> Dict[str, Union[int, pdl.datetime]]:
     '''Sends back the time that the function was called.
 
     If `call_num` is included, it sends back `call_num` with `time`, otherwise
