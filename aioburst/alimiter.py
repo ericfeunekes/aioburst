@@ -1,50 +1,48 @@
 '''The async module provides an asynchronous limiter to be used with `asyncion`'''
 import asyncio
-from contextlib import asynccontextmanager
-from typing import Union
+from datetime import datetime, timezone
+from pydantic import BaseModel, PrivateAttr, validator
 
-@asynccontextmanager
-async def aioburst(semaphore: asyncio.Semaphore, period: Union[int, float]):
-    """Limits the number of calls that can be made within a certain period.
 
-    The semaphore ensures that only that number of calls can be made simultaneously. 
-    Before exiting the context manager, the function waits (asynchonous) for `period`,
-    this ensures that the correct number of calls are made within the period, regardless
-    of when each call returns. 
+class Sleeper(BaseModel):
+    time: datetime
 
-    Note that the timing is based on when the wrapped function returns. So if you are allowed
-    5 calls per second, and 4 return quickly while 1 takes 3 seconds to return, you will be
-    able to burst up to 4 calls in seconds 2 and 3 (while waiting for the delayed call to return).
+    @validator('time', pre=True):
+    def time_validator(cls, v):
+        if v.tzinfo != timezone.utc:
+            raise ValueError('Time must be in UTC')
+        return v
 
-    If you want to limit your function to 5 calls/second, pass in asyncio.Semaphore(5) and set
-    period equal to 1.
+    def wait(self):
+        return asyncio.sleep(self.time.timestamp() - datetime.now(tz=timezone.utc).timestamp())
 
-    If you set period equal to 0 then you'll simply limit the number of simultaneous calls without
-    any delay.
+class AIOBurst(BaseModel):
+    '''The AIOBurst class is used to limit the number of concurrent tasks'''
+    limit: int = 10
+    period: float = 1.0
 
-    Parameters
-    ----------
-    semaphore : asyncio.Semaphore
-        A semaphore that is instantiated with the number of calls per period.
-    period : int | float
-        The period over which the number of calls are evaluated.
+    _lock: asyncio.Lock = PrivateAttr()
+    _todo: asyncio.Queue = PrivateAttr()
+    _in_progress: asyncio.Queue = PrivateAttr()
+    _at_limit: bool = PrivateAttr()
 
-    Raises
-    ------
-    TypeError
-        The Semaphore must be an asyncio intance. Period must be an int or float
-    ValueError
-        Period must be greater than 0.
-    """    
-    if not isinstance(semaphore, asyncio.Semaphore):
-        raise TypeError(f'semaphare must be an `asyncio.Semaphore`. You passed in a {type(semaphore)}')
-    if type(period) not in (int, float):
-        raise TypeError(f'period must be an int or float')
-    if period < 0:
-        raise ValueError('The `period` must be equal to or greater than 0')
-    async with semaphore:
-        try:
-            yield
-        finally:
-            await asyncio.sleep(period)
-            
+    def __init__(self, **data):
+        super().__init__(**data)
+        
+        self._todo = asyncio.Queue(maxsize=0)
+        self._in_progress = asyncio.Queue(maxsize=self.limit)
+        self._lock = asyncio.Lock()
+        self._at_limit = False
+
+    def __aenter__(self):
+        '''The `__aenter__` method is used to create the context manager
+        
+        Steps:
+            1. Check if the queue has reached the limit
+            2. If the queue has not reached the limit, add the task to _todo
+        '''
+        return
+
+    def __aexit__(self, *args):
+        return
+
