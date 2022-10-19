@@ -1,4 +1,4 @@
-"""The async module provides an asynchronous limiter to be used with `asyncio`"""
+"""The alimiter module provides AIOBurst, to be used to rate limit code with `asyncio`."""
 from __future__ import annotations
 import asyncio
 
@@ -7,7 +7,18 @@ from pydantic import BaseModel, PrivateAttr, validator
 
 
 class Sleeper(BaseModel):
-    """A sleeper is a class that can be used to sleep for a given amount of time"""
+    """A sleeper is a class that can be used to sleep for a given amount of time
+
+    Attributes
+    ----------
+    time : DateTime
+        The time at which you can start again; in other words, sleep until this time.
+
+    Methods
+    -------
+    wait(self):
+        Wait until the time is reached
+    """
 
     time: pdl.DateTime
 
@@ -27,53 +38,44 @@ class Sleeper(BaseModel):
 class AIOBurst(BaseModel):
     """The AIOBurst class is used to limit the number of concurrent tasks
 
-    Use the `create` method to create a new instance
+    Create an instance of AIOBurst with the `create` method. This instance can be used as a context manager to rate
+    limit "entry" to the code in the context manager.
 
+    Attributes:
+        limit: The maximum number of calls that can be made per period. Defaults to 10.
+        period: The period over which to keep track of the number of calls, in seconds. Defaults to 1.
 
+    Methods:
+        create: Create an instance of AIOBurst.
     """
 
     limit: int = 10
     period: float = 1.0
 
     _num_started: int = PrivateAttr(default=0)
-    _lock: asyncio.Lock = PrivateAttr()
     _sleepers: asyncio.Queue[Sleeper] = PrivateAttr()
-    _at_limit: bool = PrivateAttr()
     _semaphore: asyncio.Semaphore = PrivateAttr()
 
     def __init__(self, **data):
         super().__init__(**data)
         self._sleepers = asyncio.Queue(maxsize=0)
         self._semaphore = asyncio.Semaphore(self.limit)
-        self._lock = asyncio.Lock()
-        self._at_limit = False
 
     @classmethod
-    def create(cls, limit: int, period: float):
-        """Create an AIOBurst instance
+    def create(cls, limit: int = 10, period: float = 1.0):
+        """ Creates an instance of AIOBurst
 
-        Parameters
-        ----------
-        limit
-        period
+        Args:
+            limit: The maximum number of calls that can be made per period. Defaults to 10.
+            period: The period over which to keep track of the number of calls, in seconds. Defaults to 1.
 
-        Returns
-        -------
+        Returns:
 
         """
         return AIOBurst(limit=limit, period=period)
 
     async def __aenter__(self):
-        """The `__aenter__` method is used to create the context manager
-
-        Steps:
-            1. Check if the queue has reached the limit
-            2. If the queue has not reached the limit,
-            add the task to _todo
-            3. If the queue has reached the limit,
-            add the task to _todo, take the oldest Sleeper from _in_progress without committing
-        """
-
+        """The `__aenter__` method is used to create the context manager"""
         await self._semaphore.acquire()
         if self._num_started < self.limit:
             self._num_started += 1
