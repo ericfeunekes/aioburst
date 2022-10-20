@@ -1,15 +1,16 @@
 [tool.poetry]
 name = "aioburst"
-version = "0.1.2"
-description = "A library to limit async calls using a waterwheel approach to ensure calls maximize the rate limit."
+version = "0.2.0"
+description = "A library to optimize the speed of rate limited async calls."
 authors = ["ericfeunekes <ericwill.f@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pydantic = "^1.10.2"
+pendulum = "^2.1.2"
 
 [tool.poetry.group.dev.dependencies]
-ipykernel = "^6.16.0"
 tox = "^3.26.0"
 black = "^22.10.0"
 pytest = "^7.1.3"
