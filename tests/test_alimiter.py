@@ -72,6 +72,15 @@ async def double_limiter_run(
     assert (times[max_calls_low] - times[0]).seconds == period_low
 
 
+def test_limiter_simple():
+    results = []
+    limiter = AIOBurst(max_calls=5, period=1)
+    async with limiter: 
+        results.append(now())
+
+    print(results)
+
+
 class TestAIOBurst:
     def test_init(self):
         limiter = AIOBurst.create(limit=10, period=1.0)
